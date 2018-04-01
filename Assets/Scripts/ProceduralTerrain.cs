@@ -3,6 +3,8 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Security.Cryptography.X509Certificates;
 using UnityEngine;
+using UnityEngine.Profiling;
+
 
 [RequireComponent(typeof(MeshFilter))]
 [RequireComponent(typeof(MeshRenderer))]
@@ -18,25 +20,28 @@ public class ProceduralTerrain : MonoBehaviour {
 
     private const int Size = 40;
 
-    private const float Threshold = 1f;
+    private const float Threshold = 0.1f;
+
+    private readonly FastNoise _noise = new FastNoise();
 
     // Use this for initialization
     private void Start () {
         _localMesh = new Mesh();
         _filter = GetComponent<MeshFilter>();
         _data = new float[Size,Size,Size];
-        SetData();
-        RenderTerrain();
+        //SetData();      
+        
     }
 	
 	// Update is called once per frame
     private void Update () {
 		if(_changed)
         {
-            _changed = false;
-
-
-            
+            _changed = false;        
+        }
+        if (Input.GetKeyDown(KeyCode.A))
+        {
+            RenderTerrain();
         }
 	}
 
@@ -52,6 +57,7 @@ public class ProceduralTerrain : MonoBehaviour {
             {
                 for (var z = 0; z < Size - 1; z++)
                 {
+                    Debug.Log(((x*y*z / Size*Size*Size)*100) + "%");
                     var cubeValues = new float[8];
                     var edgeVertex = new Vector3[12];
                     var edgeNormal = new Vector3[12];
@@ -106,9 +112,9 @@ public class ProceduralTerrain : MonoBehaviour {
                             {
                                 newVertices.Add(edgeVertex[vertex]);
                                 newNormals.Add(edgeNormal[vertex]);
-                                GameObject sphere = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-                                sphere.transform.position = (edgeVertex[vertex]);
-                                sphere.transform.localScale = new Vector3(0.3f, 0.3f, 0.3f);
+                                //GameObject sphere = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                                //sphere.transform.position = (edgeVertex[vertex]);
+                                //sphere.transform.localScale = new Vector3(0.3f, 0.3f, 0.3f);
                                 
                             }
                             int index = newVertices.IndexOf(edgeVertex[vertex]);
@@ -148,15 +154,15 @@ public class ProceduralTerrain : MonoBehaviour {
         return normal;
     }
 
-    static float GetValueAtDatapoint(Vector3 point)
+    float GetValueAtDatapoint(Vector3 point)
     {
-        //return data[(int)point.x, (int)point.y, (int)point.z];
+        //return data[(int)point.x, (int)point.y, (int)point.z];     
+        //Debug.Log(_noise.GetSimplex(point.x, point.y, point.z));
+        float noise = _noise.GetSimplexFractal(point.x, point.z, point.y);
 
-        var fHeight = (float)(20.0*(5 + Math.Sqrt((0.5-point.x)*(0.5-point.x) + (0.5-point.y)*(0.5-point.y))));
-        fHeight = (float)(1.5 + 0.1*(Math.Sin(fHeight) + Math.Cos(fHeight)));
-        var fResult = (fHeight - point.z)*50.0;
+        return noise;
 
-        return (float)fResult;
+
     }
 
     private void SetData()
